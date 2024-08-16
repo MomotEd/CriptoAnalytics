@@ -8,27 +8,29 @@
 </head>
 <body>
     <div class="container mt-5">
-        <h1 class="mb-4">Анализ криптовалют</h1>
-        <p>Ниже представлена таблица с результатами анализа альткоинов, которые исторически совпадают с изменением цены биткоина.</p>
-        <table class="table table-striped">
+        <h1 class="mb-4">Анализ Криптовалютных Пар</h1>
+        <a href="/graph" class="btn btn-primary mb-4">Перейти к графикам</a>
+        <table class="table table-bordered">
             <thead>
                 <tr>
-                    <th>Валютная Пара</th>
-                    <th>Направление Биткоина</th>
+                    <th>Пара</th>
+                    <th>Направление движения (BTC)</th>
                     <th>Средняя Задержка (секунды)</th>
-                    <th>Направление Альткоина</th>
+                    <th>Время изменения BTC</th>
+                    <th>Время изменения Альткоина</th>
                 </tr>
             </thead>
             <tbody>
                 {% for item in data %}
-                <tr>
-                    <td>{{ item.altcoin_pair }}</td>
-                    {% for row in item.result %}
-                    <td>{{ row.direction_btc }}</td>
-                    <td>{{ row.time_delay | round(2) }}</td>
-                    <td>{{ row.direction }}</td>
+                    {% for result in item.result %}
+                    <tr>
+                        <td>{{ item.altcoin_pair }}</td>
+                        <td>{{ result.direction_btc }}</td>
+                        <td>{{ result.time_delay }}</td>
+                        <td>{{ result.btc_time }}</td>
+                        <td>{{ result.altcoin_time }}</td>
+                    </tr>
                     {% endfor %}
-                </tr>
                 {% endfor %}
             </tbody>
         </table>
