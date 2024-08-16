@@ -3,45 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crypto Analysis Results</title>
+    <title>Crypto Analysis</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-<div class="container mt-5">
-    <h1 class="mb-4">Crypto Price Correlation with Bitcoin</h1>
-    <p>Этот отчет показывает, как различные альткоины повторяют изменение цены биткоина, и среднюю задержку, с которой это происходит.</p>
-
-    {% for result in data %}
-    <div class="card mb-4">
-        <div class="card-header">
-            <h3>{{ result.altcoin_pair }}</h3>
-        </div>
-        <div class="card-body">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Направление Биткоина</th>
-                        <th>Средняя Задержка (минуты)</th>
-                        <th>Направление Альткоина</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in result.result %}
-                    <tr>
-                        <td>{{ row.direction_btc }}</td>
-                        <td>{{ row.time_delay | round(2) }}</td>
-                        <td>{{ row.direction }}</td>
-                    </tr>
+    <div class="container mt-5">
+        <h1 class="mb-4">Анализ криптовалют</h1>
+        <p>Ниже представлена таблица с результатами анализа альткоинов, которые исторически совпадают с изменением цены биткоина.</p>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Валютная Пара</th>
+                    <th>Направление Биткоина</th>
+                    <th>Средняя Задержка (секунды)</th>
+                    <th>Направление Альткоина</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in data %}
+                <tr>
+                    <td>{{ item.altcoin_pair }}</td>
+                    {% for row in item.result %}
+                    <td>{{ row.direction_btc }}</td>
+                    <td>{{ row.time_delay | round(2) }}</td>
+                    <td>{{ row.direction }}</td>
                     {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
-    {% endfor %}
-</div>
-
-<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.6.0/dist/umd/popper.min.js"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>

@@ -8,6 +8,7 @@ import asyncio
 
 app = FastAPI()
 
+# Указываем путь к шаблонам
 templates = Jinja2Templates(directory="templates")
 
 
@@ -21,7 +22,6 @@ async def fetch_data(exchange, symbol, timeframe='1h', limit=100):
     except Exception as e:
         print(f"Error fetching data for {symbol}: {e}")
         return None
-
 
 def get_price_changes(data):
     """Определение изменений в цене и направления движения (рост/спад)"""
@@ -64,15 +64,14 @@ async def index(request: Request):
                                         on='timestamp', suffixes=('', '_btc'))
 
             # Отбираем только те строки, где направление альткоина совпадает с направлением биткоина
-            matching_data = merged_data[merged_data['direction'] == merged_data['direction_btc']].copy()
+            matching_data = merged_data[merged_data['direction'] == merged_data['direction_btc']]
 
             if not matching_data.empty:
                 # Находим среднюю задержку для совпадающих направлений
                 def calculate_time_delay(row, btc_data):
                     btc_change_time = btc_data.loc[btc_data['timestamp'] <= row['timestamp'], 'timestamp'].max()
-                    return (row['timestamp'] - btc_change_time).total_seconds() / 60
+                    return (row['timestamp'] - btc_change_time).total_seconds()
 
-                # Используем .loc для явного назначения значений
                 matching_data.loc[:, 'time_delay'] = matching_data.apply(calculate_time_delay, axis=1, btc_data=btc_data)
 
                 # Группируем данные по направлениям движения
@@ -90,8 +89,11 @@ async def index(request: Request):
         except Exception as e:
             print(f"Error processing {symbol}: {e}")
 
-    return templates.TemplateResponse("index.html", {"request": request, "data": matching_results})
+    # Закрываем соединение с биржей
+    await exchange.close()
 
+    # Рендерим HTML-шаблон с переданными данными
+    return templates.TemplateResponse("index.html", {"request": request, "data": matching_results})
 
 if __name__ == '__main__':
     import uvicorn
