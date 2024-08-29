@@ -4,36 +4,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Crypto Analysis</title>
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-    <div class="container mt-5">
-        <h1 class="mb-4">Анализ Криптовалютных Пар</h1>
-        <a href="/graph" class="btn btn-primary mb-4">Перейти к графикам</a>
-        <table class="table table-bordered">
-            <thead>
+<div class="container">
+    <h1 class="mt-4">Crypto Analysis</h1>
+    <p class="lead">Средняя задержка изменения направления цены альткоина после изменения направления биткоина</p>
+
+    {% if data %}
+        {% for result in data %}
+            <h2>{{ result.altcoin_pair }}</h2>
+            <table class="table table-bordered">
+                <thead>
                 <tr>
-                    <th>Пара</th>
-                    <th>Направление движения (BTC)</th>
+                    <th>Направление Биткоина</th>
                     <th>Средняя Задержка (секунды)</th>
-                    <th>Время изменения BTC</th>
-                    <th>Время изменения Альткоина</th>
+                    <th>Время Изменения Биткоина</th>
+                    <th>Время Изменения Альткоина</th>
+                    <th>Направление Альткоина</th>
                 </tr>
-            </thead>
-            <tbody>
-                {% for item in data %}
-                    {% for result in item.result %}
+                </thead>
+                <tbody>
+                {% for item in result.result %}
                     <tr>
-                        <td>{{ item.altcoin_pair }}</td>
-                        <td>{{ result.direction_btc }}</td>
-                        <td>{{ result.time_delay }}</td>
-                        <td>{{ result.btc_time }}</td>
-                        <td>{{ result.altcoin_time }}</td>
+                        <td>{{ item.direction_btc }}</td>
+                        <td>{{ item.time_delay }}</td>
+                        <td>{{ item.btc_time }}</td>
+                        <td>{{ item.altcoin_time }}</td>
+                        <td>{{ item.direction }}</td>
                     </tr>
-                    {% endfor %}
                 {% endfor %}
-            </tbody>
-        </table>
-    </div>
+                </tbody>
+            </table>
+        {% endfor %}
+    {% else %}
+        <p>No data available.</p>
+    {% endif %}
+</div>
 </body>
 </html>

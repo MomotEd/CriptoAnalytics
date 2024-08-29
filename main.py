@@ -7,7 +7,7 @@ import ccxt.async_support as ccxt
 import asyncio
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from starlette.responses import JSONResponse
 
@@ -16,7 +16,7 @@ app = FastAPI()
 # Указываем путь к шаблонам
 templates = Jinja2Templates(directory="templates")
 
-async def fetch_data(exchange, symbol, timeframe='1h', limit=168):  # 168 часов = 7 дней
+async def fetch_data(exchange, symbol, timeframe='1s', limit=168*60*60):  # 168 часов = 7 дней
     """Асинхронное получение данных OHLCV для символа"""
     try:
         ohlcv = await exchange.fetch_ohlcv(symbol, timeframe=timeframe, limit=limit)
@@ -46,9 +46,9 @@ async def index(request: Request):
     # Обработка данных биткоина
     btc_data = get_price_changes(btc_data)
 
-    # Получаем список всех тикеров
+    # Получаем список всех тикеров, оканчивающихся на /USDT
     markets = await exchange.load_markets()
-    ticker_symbols = [symbol for symbol in markets.keys() if symbol != 'BTC/USDT' and symbol.endswith('/USDT')][0:10]
+    ticker_symbols = [symbol for symbol in markets.keys() if symbol != 'BTC/USDT' and symbol.endswith('/USDT')]
 
     # Асинхронно получаем данные по всем тикерам
     tasks = [fetch_data(exchange, symbol) for symbol in ticker_symbols]
@@ -67,7 +67,7 @@ async def index(request: Request):
             merged_data = pd.merge_asof(altcoin_data, btc_data[['timestamp', 'direction', 'close']],
                                         on='timestamp', suffixes=('', '_btc'))
 
-            # Отбираем только те строки, где направление альткоина совпадает с направлением биткоина
+            # Отбираем строки, где направление альткоина совпадает с направлением биткоина
             matching_data = merged_data[merged_data['direction'] == merged_data['direction_btc']]
 
             if not matching_data.empty:
@@ -122,15 +122,16 @@ async def graph(request: Request):
     end_date = btc_data['timestamp'].max()
     start_date = end_date - timedelta(days=7)
 
-    # Получаем список всех тикеров
+    # Получаем список всех тикеров, оканчивающихся на /USDT
     markets = await exchange.load_markets()
-    ticker_symbols = [symbol for symbol in markets.keys() if symbol != 'BTC/USDT' and symbol.endswith('/USDT')][0:10]
+    ticker_symbols = [symbol for symbol in markets.keys() if symbol != 'BTC/USDT' and symbol.endswith('/USDT')]
 
     # Асинхронно получаем данные по всем тикерам
     tasks = [fetch_data(exchange, symbol) for symbol in ticker_symbols]
     results = await asyncio.gather(*tasks)
 
     graphs = []
+    correlation_threshold = 0.8  # Порог корреляции для фильтрации
 
     for symbol, altcoin_data in zip(ticker_symbols, results):
         if altcoin_data is None:
@@ -139,26 +140,25 @@ async def graph(request: Request):
         try:
             altcoin_data = get_price_changes(altcoin_data)
 
-            # Сводим данные по времени и направлению движения
-            merged_data = pd.merge_asof(altcoin_data, btc_data[['timestamp', 'direction', 'close']],
-                                        on='timestamp', suffixes=('', '_btc'))
+            # Приводим временные ряды биткоина и альткоина к одному временному интервалу
+            merged_data = pd.merge_asof(altcoin_data[['timestamp', 'close']], btc_data[['timestamp', 'close']], on='timestamp', suffixes=('', '_btc'))
 
-            # Отбираем только те строки, где направление альткоина совпадает с направлением биткоина
-            matching_data = merged_data[merged_data['direction'] == merged_data['direction_btc']]
+            # Вычисляем коэффициент корреляции
+            correlation = merged_data['close'].corr(merged_data['close_btc'])
 
-            if not matching_data.empty:
-                # Создаем графики для биткоина и альткоина
+            if correlation >= correlation_threshold:
+                # Создаем графики для биткоина и альткоина, если они статистически похожи
                 fig = make_subplots(specs=[[{"secondary_y": True}]])
 
                 # График цены биткоина
                 fig.add_trace(
-                    go.Scatter(x=matching_data['timestamp'], y=matching_data['close_btc'], mode='lines', name='BTC/USDT'),
+                    go.Scatter(x=btc_data['timestamp'], y=btc_data['close'], mode='lines', name='BTC/USDT'),
                     secondary_y=False,
                 )
 
                 # График цены альткоина
                 fig.add_trace(
-                    go.Scatter(x=matching_data['timestamp'], y=matching_data['close'], mode='lines', name=symbol),
+                    go.Scatter(x=altcoin_data['timestamp'], y=altcoin_data['close'], mode='lines', name=symbol),
                     secondary_y=True,
                 )
 
@@ -169,7 +169,7 @@ async def graph(request: Request):
 
                 # Настройка заголовка
                 fig.update_layout(
-                    title_text=f"Сравнение цен BTC/USDT и {symbol}",
+                    title_text=f"Сравнение цен BTC/USDT и {symbol} (Корреляция: {correlation:.2f})",
                     height=600,
                 )
 
